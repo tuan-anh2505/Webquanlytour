@@ -1,0 +1,22 @@
+{
+  "name": "webquanlytour-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host localhost",
+    "start": "vite --host localhost",
+    "build": "vite build",
+    "preview": "vite preview --host localhost",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^6.30.1"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5",
+    "@vitejs/plugin-react": "^4.4.1"
+  }
+}

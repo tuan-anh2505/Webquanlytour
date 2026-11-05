@@ -145,5 +145,8 @@ vite.config.ts.timestamp-*
 # Astro generated types
 .astro/
 
+# Local browser QA screenshots and disposable browser profiles
+.artifacts/
+
 # Turbo Repo
 .turbo
