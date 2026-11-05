@@ -1,9 +1,9 @@
 const router = require('express').Router();
 const controller = require('../controllers/userController');
-const { authenticate, requireRoles } = require('../middlewares/auth');
+const { authenticateOperations, requireRoles } = require('../middlewares/auth');
 
 // Quản lý tài khoản và cấp quyền Staff thuộc quyền Admin trên mọi endpoint.
-router.use(authenticate, requireRoles('admin'));
+router.use(authenticateOperations, requireRoles('admin'));
 router.get('/permissions', controller.permissionDefinitions);
 router.get('/', controller.list);
 router.post('/', controller.create);

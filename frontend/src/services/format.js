@@ -1,6 +1,7 @@
 /** Hiển thị tiền VND, giữ việc tính giá chính thức ở backend. */
 export function money(value) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(value || 0));
+  const amount = Number(value || 0);
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
 }
 
 /** MySQL trả ngày giờ theo giờ Việt Nam; không ép chuỗi không múi giờ thành UTC. */

@@ -10,3 +10,9 @@ export function safeReturnTo(value, fallback = '/account') {
 export function bookingPath(tourId, scheduleId) {
   return '/booking/start?' + new URLSearchParams({ tour: String(tourId), schedule: String(scheduleId) });
 }
+
+/** Sau đăng nhập vận hành chỉ quay lại khu vực quản trị, không chuyển sang phiên Customer. */
+export function safeOperationsReturnTo(value) {
+  const result = safeReturnTo(value, '/admin');
+  return /^\/admin(?:\/|\?|#|$)/.test(result) ? result : '/admin';
+}

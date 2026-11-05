@@ -2,18 +2,21 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/UserModel');
 const validate = require('../validators/authValidator');
+const { getPortalConfig } = require('../config/authPortal');
 
-/** Tạo access token; quyền không được tin từ token mà được đọc lại mỗi request. */
-function createToken(user) {
-    return jwt.sign({}, process.env.JWT_SECRET, {
-        algorithm: 'HS256', subject: String(user.id), issuer: 'webquanlytour',
-        audience: 'webquanlytour-web', expiresIn: process.env.JWT_EXPIRES_IN || '8h'
+/** Tạo token có phạm vi cổng rõ ràng; quyền thực vẫn được đọc lại từ DB mỗi request. */
+function createToken(user, portal = 'customer') {
+    const config = getPortalConfig(portal);
+    return jwt.sign({ portal }, config.secret, {
+        algorithm: 'HS256', subject: String(user.id), issuer: config.issuer,
+        audience: config.audience, expiresIn: config.expiresIn
     });
 }
 
 /** Bổ sung quyền cho giao diện mà không để lộ password_hash. */
 async function publicUser(id) {
     const user = await User.findById(id);
+    if (!user) return undefined;
     user.permissions = user.role === 'staff' ? await User.permissionsFor(id) : [];
     return user;
 }
@@ -34,8 +37,12 @@ async function register(req, res) {
     res.status(201).json({ data: { user, token: createToken(user) } });
 }
 
-/** Kiểm tra mật khẩu và trạng thái; thông báo chung tránh tiết lộ email có tồn tại. */
-async function login(req, res) {
+/**
+ * Dùng chung bước kiểm tra mật khẩu nhưng chỉ cấp token cho vai trò của đúng cổng.
+ * Sai email, mật khẩu, vai trò hoặc trạng thái đều cùng phản hồi để tránh dò tài khoản.
+ */
+async function loginForPortal(req, res, portal) {
+    const config = getPortalConfig(portal);
     const body = validate.objectBody(req.body);
     validate.allowFields(body, ['email', 'password']);
     const email = validate.email(body.email);
@@ -44,13 +51,22 @@ async function login(req, res) {
     // Hash cố định giúp vẫn thực hiện bcrypt khi không có tài khoản, giảm chênh lệch thời gian.
     const dummyHash = '$2b$12$GgGCOum8B3S/ocGJqQe.oe0PIc5fM9IQPYfZzz81G2.sVJlMhCB3W';
     const matches = await bcrypt.compare(password, account ? account.password_hash : dummyHash);
-    if (!account || !matches || account.status !== 'active') {
+    if (!account || !matches || account.status !== 'active' || !config.roles.includes(account.role)) {
+        throw Object.assign(new Error('Email, mật khẩu không đúng hoặc tài khoản đã bị khóa.'), { status: 401 });
+    }
+    const user = await publicUser(account.id);
+    if (!user || user.status !== 'active' || !config.roles.includes(user.role)) {
         throw Object.assign(new Error('Email, mật khẩu không đúng hoặc tài khoản đã bị khóa.'), { status: 401 });
     }
     await User.touchLogin(account.id);
-    const user = await publicUser(account.id);
-    res.json({ data: { user, token: createToken(user) } });
+    res.json({ data: { user, token: createToken(user, portal) } });
 }
+
+/** Cổng đăng nhập công khai chỉ chấp nhận Customer, không gợi ý đường dẫn quản trị. */
+async function login(req, res) { return loginForPortal(req, res, 'customer'); }
+
+/** Cổng đăng nhập nội bộ chỉ chấp nhận Admin/Staff và phát hành token operations riêng. */
+async function loginOperations(req, res) { return loginForPortal(req, res, 'operations'); }
 
 /** Trả lại hồ sơ của chính chủ từ middleware xác thực. */
 async function me(req, res) {
@@ -68,4 +84,4 @@ async function updateMe(req, res) {
     res.json({ data: await publicUser(req.user.id) });
 }
 
-module.exports = { register, login, me, updateMe };
+module.exports = { register, login, loginOperations, me, updateMe };

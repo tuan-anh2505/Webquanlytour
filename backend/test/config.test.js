@@ -51,3 +51,27 @@ test('không cho múi giờ DB lệch với lịch khởi hành giờ Việt Nam
   environment(t, { DB_TIMEZONE: '+00:00' });
   assert.throws(validateEnvironment, /DB_TIMEZONE/);
 });
+
+test('cổng nội bộ cần namespace riêng và secret riêng khi production', (t) => {
+  environment(t, { INTERNAL_AUTH_PATH: '/api/auth', INTERNAL_JWT_SECRET: '', INTERNAL_ALLOWED_IPS: '127.0.0.1', NODE_ENV: 'development' });
+  assert.throws(validateEnvironment, /INTERNAL_AUTH_PATH/);
+  process.env.INTERNAL_AUTH_PATH = '/api/operations/auth';
+  assert.doesNotThrow(validateEnvironment);
+  process.env.NODE_ENV = 'production';
+  assert.throws(validateEnvironment, /INTERNAL_JWT_SECRET/);
+  process.env.INTERNAL_JWT_SECRET = 'operations-secret-separated-from-customers-at-least-32';
+  assert.doesNotThrow(validateEnvironment);
+  process.env.INTERNAL_JWT_SECRET = process.env.JWT_SECRET;
+  assert.throws(validateEnvironment, /khác JWT_SECRET/);
+});
+
+test('cấu hình giữ chỗ và thanh toán sai bị chặn trước khởi động', (t) => {
+  environment(t, { BOOKING_HOLD_MINUTES: '0', PAYMENT_MODE: 'mock', PAYMENT_WEBHOOK_SECRET: '' });
+  assert.throws(validateEnvironment, /BOOKING_HOLD_MINUTES/);
+  process.env.BOOKING_HOLD_MINUTES = '15';
+  process.env.PAYMENT_MODE = 'unknown';
+  assert.throws(validateEnvironment, /PAYMENT_MODE/);
+  process.env.PAYMENT_MODE = 'mock';
+  process.env.PAYMENT_WEBHOOK_SECRET = 'short';
+  assert.throws(validateEnvironment, /PAYMENT_WEBHOOK_SECRET/);
+});

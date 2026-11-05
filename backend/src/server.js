@@ -1,5 +1,6 @@
 const { validateEnvironment } = require('./config/env');
 const pool = require('./config/db');
+const { createBookingExpiryJob } = require('./jobs/bookingExpiryJob');
 
 /** Chỉ mở HTTP sau khi cấu hình và MySQL hợp lệ; không seed hay migrate tự động. */
 async function startServer() {
@@ -7,15 +8,21 @@ async function startServer() {
   await pool.query('SELECT 1');
   const app = require('./app');
   const port = Number(process.env.PORT || 5000);
+  const expiryJob = createBookingExpiryJob();
   const server = app.listen(port, () => {
+    if (process.env.BOOKING_EXPIRY_ENABLED !== 'false') expiryJob.start();
     console.log(`Backend đang chạy tại http://localhost:${port}`);
   });
 
   /** Ngừng nhận yêu cầu mới và giải phóng pool khi người dùng dừng server. */
+  let shuttingDown = false;
   async function shutdown() {
+    if (shuttingDown) return;
+    shuttingDown = true;
     const timer = setTimeout(() => process.exit(1), 10000);
     timer.unref();
     server.close(async () => {
+      await expiryJob.stop();
       await pool.end();
       clearTimeout(timer);
       process.exit(0);
@@ -25,7 +32,7 @@ async function startServer() {
   process.once('SIGTERM', shutdown);
   server.once('error', (error) => {
     console.error(`Không thể mở HTTP server (${error.code || error.name}).`);
-    pool.end().finally(() => { process.exitCode = 1; });
+    expiryJob.stop().then(() => pool.end()).finally(() => { process.exitCode = 1; });
   });
   return server;
 }

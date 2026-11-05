@@ -1,6 +1,6 @@
 const express = require('express');
 const controller = require('../controllers/tourController');
-const { authenticate, requireRoles, requirePermission } = require('../middlewares/auth');
+const { authenticateOperations, requireRoles, requirePermission } = require('../middlewares/auth');
 
 // Các route Guest được gắn tại /api và hoàn toàn không đi qua authenticate.
 const publicRouter = express.Router();
@@ -12,7 +12,7 @@ publicRouter.get('/tours/:idOrSlug', controller.detailPublic);
 
 // Các route quản trị được gắn tại /api/manage; quyền được kiểm tra ở backend từng thao tác.
 const manageRouter = express.Router();
-manageRouter.use(authenticate, requireRoles('admin', 'staff'));
+manageRouter.use(authenticateOperations, requireRoles('admin', 'staff'));
 manageRouter.get('/categories', requirePermission('categories.read'), controller.categories);
 manageRouter.post('/categories', requirePermission('categories.write'), controller.createCategory);
 manageRouter.patch('/categories/:id', requirePermission('categories.write'), controller.updateCategory);

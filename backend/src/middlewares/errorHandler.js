@@ -23,6 +23,9 @@ function errorHandler(error, req, res, next) {
   } else if (error.code === 'ER_ROW_IS_REFERENCED_2') {
     status = 409;
     message = 'Dữ liệu đang được sử dụng bởi chức năng khác.';
+  } else if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
+    status = 409;
+    message = 'Dữ liệu đang được xử lý đồng thời. Vui lòng thử lại yêu cầu.';
   } else if (['ER_CHECK_CONSTRAINT_VIOLATED', 'ER_DATA_TOO_LONG', 'WARN_DATA_TRUNCATED', 'ER_TRUNCATED_WRONG_VALUE'].includes(error.code)) {
     status = 400;
     message = 'Giá trị không đáp ứng ràng buộc dữ liệu.';

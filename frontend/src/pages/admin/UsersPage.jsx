@@ -9,7 +9,7 @@ import { statusLabels } from '../../services/format';
 
 /** Chức năng chỉ dành cho Admin: tạo tài khoản, thay đổi vai trò và cấp quyền Staff. */
 export function UsersPage() {
-  const { user } = useAuth();
+  const { operationsUser: user } = useAuth();
   const [params, setParams] = useSearchParams();
   const resource = useResource(user.role === 'admin' ? '/manage/users?' + params : null);
   const definitions = useResource(user.role === 'admin' ? '/manage/users/permissions' : null);

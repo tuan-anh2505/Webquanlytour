@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useResource } from '../hooks/useResource';
 
-/** Khung chung cho khách và quản trị; danh mục tour luôn truy cập công khai. */
+/** Khung dành cho Guest/Customer; không công khai đường dẫn đăng nhập vận hành. */
 export function MainLayout() {
   const { user, logout } = useAuth();
   const company = useResource('/company');
@@ -13,7 +13,7 @@ export function MainLayout() {
     <a className="skip-link" href="#main">Chuyển tới nội dung</a>
     <header className="site-header"><div className="container header-inner">
       <Link className="brand" to="/" aria-label={`${name} - Trang chủ`}><span className="brand-mark" aria-hidden="true">✦</span><span>{name}<small>KHÁM PHÁ THEO CÁCH CỦA BẠN</small></span></Link>
-      <nav className="main-nav" aria-label="Điều hướng chính"><NavLink to="/" end>Khám phá tour</NavLink>{user && <NavLink to="/account">Tài khoản</NavLink>}{['admin', 'staff'].includes(user?.role) && <NavLink to="/admin">Quản trị</NavLink>}</nav>
+      <nav className="main-nav" aria-label="Điều hướng chính"><NavLink to="/" end>Khám phá tour</NavLink>{user && <><NavLink to="/bookings">Booking của tôi</NavLink><NavLink to="/account">Tài khoản</NavLink></>}</nav>
       <div className="header-actions">{user ? <><span className="user-name">{user.full_name}</span><button className="text-button" onClick={signOut}>Đăng xuất</button></> : <><Link className="text-button" to="/login">Đăng nhập</Link><Link className="button small" to="/register">Đăng ký</Link></>}</div>
     </div></header>
     <main id="main"><Outlet /></main>

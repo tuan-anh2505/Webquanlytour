@@ -14,11 +14,11 @@ function securityHeaders(req, res, next) {
 }
 
 /** Giới hạn thử đăng nhập/đăng ký theo IP trong một tiến trình; không lưu dữ liệu vào DB. */
-function createRateLimiter({ max, windowMs, now = Date.now }) {
+function createRateLimiter({ max, windowMs, now = Date.now, keyGenerator }) {
   const entries = new Map();
   return function limitRequests(req, res, next) {
     const timestamp = now();
-    const key = req.ip || req.socket?.remoteAddress || 'unknown';
+    const key = keyGenerator ? keyGenerator(req) : req.ip || req.socket?.remoteAddress || 'unknown';
     let entry = entries.get(key);
     if (!entry || entry.expiresAt <= timestamp) {
       entry = { count: 0, expiresAt: timestamp + windowMs };

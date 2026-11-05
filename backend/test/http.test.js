@@ -6,6 +6,7 @@ process.env.PUBLIC_ORIGIN = 'http://localhost:5173';
 const User = require('../src/models/UserModel');
 const Tour = require('../src/models/TourModel');
 const pool = require('../src/config/db');
+const { getPortalConfig } = require('../src/config/authPortal');
 
 // Chặn mọi truy vấn thực trong file này. HTTP/router/middleware/JWT vẫn chạy code thật.
 pool.query = async () => { throw new Error('HTTP test không được truy cập DB thật.'); };
@@ -38,7 +39,9 @@ function fixtures(t, staffPermissions = ['tours.read']) {
 
 /** Tạo token thử nghiệm cùng issuer/audience/algorithm mà ứng dụng yêu cầu. */
 function token(id) {
-  return jwt.sign({}, process.env.JWT_SECRET, { subject: id, issuer: 'webquanlytour', audience: 'webquanlytour-web', algorithm: 'HS256', expiresIn: '1h' });
+  const portal = ['1', '2'].includes(id) ? 'operations' : 'customer';
+  const config = getPortalConfig(portal);
+  return jwt.sign({ portal }, config.secret, { subject: id, issuer: config.issuer, audience: config.audience, algorithm: 'HS256', expiresIn: '1h' });
 }
 
 /** Gọi API trên cổng tạm để kiểm tra kết quả sau toàn bộ middleware. */
@@ -69,12 +72,12 @@ test('Guest xem danh sách, chi tiết và lịch mà không cần đăng nhập
   assert.equal(authReads, 0);
 });
 
-test('quản trị trả 401 cho Guest và 403 cho Customer, không gọi thao tác ghi', async (t) => {
+test('quản trị trả 401 cho Guest/token Customer và 403 cho Staff thiếu quyền, không gọi thao tác ghi', async (t) => {
   fixtures(t);
   let writes = 0;
   t.mock.method(Tour, 'create', async () => { writes++; });
   assert.equal((await request('/manage/tours')).status, 401);
-  assert.equal((await request('/manage/tours', { id: '3', method: 'POST', body: {} })).status, 403);
+  assert.equal((await request('/manage/tours', { id: '3', method: 'POST', body: {} })).status, 401);
   assert.equal((await request('/manage/users', { id: '2' })).status, 403);
   assert.equal(writes, 0);
 });

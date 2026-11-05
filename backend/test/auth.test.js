@@ -10,6 +10,7 @@ const User = require('../src/models/UserModel');
 const pool = require('../src/config/db');
 const controller = require('../src/controllers/authController');
 const middleware = require('../src/middlewares/auth');
+const { getPortalConfig } = require('../src/config/authPortal');
 
 /** Tạo response giả đủ để kiểm tra status/body của controller Express. */
 function response() {
@@ -26,9 +27,10 @@ async function callMiddleware(handler, req) {
 }
 
 /** JWT thật dùng trong kiểm thử chữ ký, issuer, audience và trạng thái bị khóa. */
-function token(id = '1', options = {}) {
-    return jwt.sign({}, process.env.JWT_SECRET, {
-        algorithm: 'HS256', subject: id, issuer: 'webquanlytour', audience: 'webquanlytour-web', expiresIn: '1h', ...options
+function token(id = '1', options = {}, portal = 'customer') {
+    const config = getPortalConfig(portal);
+    return jwt.sign({ portal }, config.secret, {
+        algorithm: 'HS256', subject: id, issuer: config.issuer, audience: config.audience, expiresIn: '1h', ...options
     });
 }
 
@@ -58,6 +60,7 @@ test('đăng ký hash mật khẩu, luôn tạo customer và chỉ trả hồ s�
     assert.equal(JSON.stringify(res.body).includes('password_hash'), false);
     const payload = jwt.verify(res.body.data.token, process.env.JWT_SECRET, middleware.JWT_OPTIONS);
     assert.equal(payload.sub, '9007199254740993');
+    assert.equal(payload.portal, 'customer');
     assert.ok(payload.exp > payload.iat);
 });
 
@@ -69,20 +72,23 @@ test('đăng ký từ chối mật khẩu vượt 72 byte UTF-8 và email đã s
     await assert.rejects(controller.register({ body }, response()), error => error.status === 409);
 });
 
-test('đăng nhập trả token hợp lệ, không trả hash; tài khoản banned bị từ chối', async t => {
+test('đăng nhập nội bộ trả token hợp lệ, không trả hash; tài khoản banned bị từ chối', async t => {
     const account = { id: '2', email: 'staff@example.com', role: 'staff', status: 'active', password_hash: await bcrypt.hash('Password123', 4) };
     t.mock.method(User, 'findByEmail', async () => account);
     const touch = t.mock.method(User, 'touchLogin', async () => {});
     t.mock.method(User, 'findById', async () => ({ id: '2', email: account.email, role: account.role, status: account.status }));
     t.mock.method(User, 'permissionsFor', async () => ['tours.read']);
     const res = response();
-    await controller.login({ body: { email: account.email, password: 'Password123' } }, res);
+    await controller.loginOperations({ body: { email: account.email, password: 'Password123' } }, res);
     assert.equal(touch.mock.callCount(), 1);
     assert.deepEqual(res.body.data.user.permissions, ['tours.read']);
     assert.equal(JSON.stringify(res.body).includes('password_hash'), false);
-    assert.equal(jwt.verify(res.body.data.token, process.env.JWT_SECRET, middleware.JWT_OPTIONS).sub, '2');
+    const config = getPortalConfig('operations');
+    const payload = jwt.verify(res.body.data.token, config.secret, config.verifyOptions);
+    assert.equal(payload.sub, '2');
+    assert.equal(payload.portal, 'operations');
     account.status = 'banned';
-    await assert.rejects(controller.login({ body: { email: account.email, password: 'Password123' } }, response()), error => error.status === 401);
+    await assert.rejects(controller.loginOperations({ body: { email: account.email, password: 'Password123' } }, response()), error => error.status === 401);
     assert.equal(touch.mock.callCount(), 1);
 });
 
@@ -108,11 +114,11 @@ test('Staff đọc lại quyền trên từng request; Customer không thể dù
     let permissions = ['tours.write'];
     t.mock.method(User, 'findById', async () => ({ id: '3', role: 'staff', status: 'active' }));
     t.mock.method(User, 'permissionsFor', async () => [...permissions]);
-    const req = { headers: { authorization: `Bearer ${token('3')}` } };
-    assert.equal(await callMiddleware(middleware.authenticate, req), undefined);
+    const req = { headers: { authorization: `Bearer ${token('3', {}, 'operations')}` } };
+    assert.equal(await callMiddleware(middleware.authenticateOperations, req), undefined);
     assert.equal(await callMiddleware(middleware.requirePermission('tours.write'), req), undefined);
     permissions = [];
-    assert.equal(await callMiddleware(middleware.authenticate, req), undefined);
+    assert.equal(await callMiddleware(middleware.authenticateOperations, req), undefined);
     assert.equal((await callMiddleware(middleware.requirePermission('tours.write'), req)).status, 403);
     req.user = { role: 'customer', permissions: ['tours.write'] };
     assert.equal((await callMiddleware(middleware.requirePermission('tours.write'), req)).status, 403);
