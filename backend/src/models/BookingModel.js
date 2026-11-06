@@ -68,6 +68,8 @@ const BookingModel = {
   async history(ctx, oldStatus, newStatus, actorId, note) {
     await ctx.connection.query('INSERT INTO booking_status_history (booking_id,changed_by,old_status,new_status,note) VALUES (?,?,?,?,?)',
       [ctx.booking.id, actorId || null, oldStatus, newStatus, note]);
+    // Outbox và thông báo cùng commit với trạng thái; email thực được job gửi sau commit.
+    await require('./NotificationModel').bookingEvent(ctx, newStatus);
   },
 
   /** Trả chỗ chính xác; nếu counter lệch sẽ rollback thay vì âm thầm ép về 0. */
@@ -95,6 +97,9 @@ const BookingModel = {
     const remaining = paid - covered;
     const amount = `${remaining / 100n}.${String(remaining % 100n).padStart(2, '0')}`;
     const [result] = await ctx.connection.query("INSERT INTO refunds (payment_id,amount,reason,status) VALUES (?,?,?,'requested')", [payment.id, amount, String(reason).slice(0, 500)]);
+    await require('./NotificationModel').enqueue(ctx.connection, ctx.booking.customer_id, {
+      type: 'payment.refund_requested', title: 'Đã tạo yêu cầu hoàn tiền', message: 'Khoản thanh toán của booking đã được chuyển sang luồng yêu cầu hoàn tiền. Yêu cầu chưa đồng nghĩa tiền đã được hoàn.', link: `/bookings/${ctx.booking.id}`
+    });
     return { id: String(result.insertId), payment_id: String(payment.id), amount, reason, status: 'requested' };
   },
 

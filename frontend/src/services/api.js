@@ -49,12 +49,13 @@ function createClient(portal) {
     post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }, portal),
     patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }, portal),
     put: (path, body, options = {}) => request(path, { ...options, method: 'PUT', body }, portal),
+    delete: (path, options = {}) => request(path, { ...options, method: 'DELETE' }, portal),
   };
 }
 
 export const customerApi = createClient('customer');
 export const operationsApi = createClient('operations');
 // Tái sử dụng các trang hiện có: đường dẫn /manage luôn dùng phiên nhân viên, độc lập role trên UI.
-export const api = Object.fromEntries(['get', 'post', 'patch', 'put'].map((method) => [method,
+export const api = Object.fromEntries(['get', 'post', 'patch', 'put', 'delete'].map((method) => [method,
   (path, ...args) => (/^\/manage(?:\/|\?|$)/.test(path) ? operationsApi : customerApi)[method](path, ...args)
 ]));

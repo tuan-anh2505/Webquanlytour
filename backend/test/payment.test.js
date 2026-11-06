@@ -16,6 +16,8 @@ const { getPaymentConfig } = require('../src/config/payment');
 
 /** Repository giả mô phỏng khóa/commit; không kết nối hay ghi MySQL hiện hữu. */
 function fixture(t, overrides = {}) {
+    // Kiểm thử thanh toán tách riêng outbox; notification.test kiểm tra gửi thư và transaction.
+    t.mock.method(require('../src/models/NotificationModel'), 'enqueue', async () => {});
     const ctx = {
         now: '2027-03-01 07:00:00', tour: { id: '1', status: 'active' },
         schedule: { id: '2', status: 'open', departure_date: '2027-03-02 08:00:00' },

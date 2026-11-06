@@ -60,7 +60,7 @@ Trong Admin, tạo danh mục → tạo tour → thêm URL ảnh/lịch trình/l
 - Giữ chỗ mặc định 15 phút, khóa MySQL theo thứ tự nhất quán, chống giữ vượt sức chứa và chống tạo trùng khi gửi lại yêu cầu.
 - Job hết hạn tự trả chỗ; hủy đơn trước giờ khởi hành trả chỗ một lần, lưu lịch sử trạng thái và tạo yêu cầu hoàn tiền nếu đã thanh toán.
 - Thanh toán **mô phỏng**, webhook HMAC có timestamp, xử lý sự kiện lặp/đến muộn và hoàn tiền thử nghiệm. Không có giao dịch ngân hàng thật; mock luôn bị tắt trong production.
-- Giao diện quản lý booking/thanh toán, sidebar xanh navy theo ảnh tham khảo; cổng đăng nhập nội bộ giữ bố cục đơn giản. Dashboard thống kê đầy đủ thuộc Giai đoạn 3.
+- Giao diện quản lý booking/thanh toán, sidebar xanh navy theo ảnh tham khảo; cổng đăng nhập nội bộ giữ bố cục đơn giản. Dashboard được bổ sung trong Giai đoạn 3 bên dưới.
 
 Luồng dùng thử: chọn tour/lịch → Đặt tour → đăng nhập Customer → nhập liên hệ/hành khách → tạo booking → Thanh toán thử nghiệm → chọn thành công/thất bại. Xem trạng thái tại `/bookings`. Nhân viên vào `/admin/bookings` và `/admin/payments` bằng cổng nội bộ.
 
@@ -70,10 +70,23 @@ Biến cấu hình mới có mặc định local, không cần ghi đè `.env` h
 
 Chi tiết hàm, API, chính sách giữ/hủy/hoàn và giới hạn thử nghiệm ở [Giai đoạn 2](docs/GIAI_DOAN_2.md).
 
+## Giai đoạn 3 đã triển khai
+
+- Dashboard `/admin`: số booking theo ngày, trạng thái, hành trình được đặt nhiều, tour, Customer, dòng tiền thu/hoàn và trạng thái mail. Staff chỉ nhận nhóm dữ liệu tương ứng quyền đọc; tiền mock tách khỏi tiền thật.
+- `/admin/guides` và `/admin/trips`: hồ sơ hướng dẫn viên, phân công chống trùng lịch, guide trưởng, điểm/giờ tập trung, di chuyển/lưu trú/liên hệ khẩn cấp và danh sách khách theo quyền. Hoàn thành chuyến sau ngày kết thúc để mở điều kiện đánh giá.
+- Bài viết `/articles`, tìm kiếm tổng hợp `/search`, biên tập tại `/admin/articles`; nháp/ẩn không có trong API Guest.
+- Metadata title/description/canonical/Open Graph, JSON-LD, `/robots.txt`, `/sitemap.xml`. Khi bật `SERVE_FRONTEND=true`, Express phục vụ `frontend/dist` với metadata và nội dung công khai có sẵn trong HTML.
+- Customer lưu `/wishlist`, theo dõi `/notifications`, xem `/account/reviews`; đánh giá chỉ cho khách đã hoàn thành tour và luôn chờ kiểm duyệt. Nhân viên duyệt tại `/admin/reviews`.
+- Thông báo và email outbox cùng transaction booking, gửi sau commit, có lease/retry. Mặc định `EMAIL_MODE=file` lưu bản xem trước tại `.artifacts/mail`, **không gửi email thật**. Để gửi thật, cấu hình SMTP và `MAIL_FROM`; không ghi đè `.env` hiện có bằng file mẫu.
+
+Staff cần thêm các quyền phù hợp: `dashboard.read`, `guides.read/write`, `trips.read/write`, `articles.read/write`, `reviews.read/write`. Xem dashboard cần quyền đọc module tương ứng; xem danh sách khách trong chuyến cần `bookings.read`; hoàn thành chuyến cần cả `trips.write` và `bookings.write`. Sau khi cấp quyền, tải lại trang để giao diện cập nhật.
+
+Xem [Giai đoạn 3 và công dụng các hàm](docs/GIAI_DOAN_3.md) để cấu hình SMTP/SEO và nghiệm thu. Toàn bộ bảng/dữ liệu có sẵn được giữ nguyên; không tạo dữ liệu mẫu. Ảnh vẫn quản lý bằng URL như phạm vi đã thống nhất.
+
 ## Kiểm tra
 
 Trong `backend`: `npm test`. Trong `frontend`: `npm test` và `npm run build`.
 
 Các test dùng repository/pool giả lập và JWT/bcrypt thật, không ghi DB thật. `/api/health` truy vấn MySQL chỉ đọc, trả `503` nếu DB không sẵn sàng. Khi chạy server, MySQL phải kết nối thành công trước khi mở cổng HTTP.
 
-Xem [chức năng Giai đoạn 1](docs/GIAI_DOAN_1.md), [Giai đoạn 2](docs/GIAI_DOAN_2.md), [hợp đồng API](docs/API.md) và [cổng đăng nhập nội bộ](docs/BAO_MAT_DANG_NHAP.md).
+Xem [chức năng Giai đoạn 1](docs/GIAI_DOAN_1.md), [Giai đoạn 2](docs/GIAI_DOAN_2.md), [Giai đoạn 3](docs/GIAI_DOAN_3.md), [hợp đồng API](docs/API.md) và [cổng đăng nhập nội bộ](docs/BAO_MAT_DANG_NHAP.md).

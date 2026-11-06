@@ -13,7 +13,7 @@ export function MainLayout() {
     <a className="skip-link" href="#main">Chuyển tới nội dung</a>
     <header className="site-header"><div className="container header-inner">
       <Link className="brand" to="/" aria-label={`${name} - Trang chủ`}><span className="brand-mark" aria-hidden="true">✦</span><span>{name}<small>KHÁM PHÁ THEO CÁCH CỦA BẠN</small></span></Link>
-      <nav className="main-nav" aria-label="Điều hướng chính"><NavLink to="/" end>Khám phá tour</NavLink>{user && <><NavLink to="/bookings">Booking của tôi</NavLink><NavLink to="/account">Tài khoản</NavLink></>}</nav>
+      <nav className="main-nav" aria-label="Điều hướng chính"><NavLink to="/" end>Khám phá tour</NavLink><NavLink to="/articles">Cẩm nang</NavLink><NavLink to="/search">Tìm kiếm</NavLink>{user && <><NavLink to="/bookings">Booking của tôi</NavLink><NavLink to="/wishlist">Yêu thích</NavLink><NavLink to="/notifications">Thông báo</NavLink><NavLink to="/account">Tài khoản</NavLink></>}</nav>
       <div className="header-actions">{user ? <><span className="user-name">{user.full_name}</span><button className="text-button" onClick={signOut}>Đăng xuất</button></> : <><Link className="text-button" to="/login">Đăng nhập</Link><Link className="button small" to="/register">Đăng ký</Link></>}</div>
     </div></header>
     <main id="main"><Outlet /></main>

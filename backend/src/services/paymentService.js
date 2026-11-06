@@ -215,6 +215,9 @@ async function approveRefund(reference, reason) {
             const note = reason ? Array.from(`${refund.reason || ''} | Xác nhận: ${reason}`).slice(0, 500).join('') : refund.reason;
             await ctx.connection.query("UPDATE refunds SET status='success',provider_refund_id=?,processed_at=CURRENT_TIMESTAMP,reason=? WHERE id=? AND status='requested'", [`mock-refund-${randomUUID()}`, note, refund.id]);
         }
+        await require('../models/NotificationModel').enqueue(ctx.connection, ctx.booking.customer_id, {
+            type: 'payment.refunded', title: 'Đã xử lý hoàn tiền thử nghiệm', message: 'Yêu cầu hoàn tiền đã được xác nhận trong môi trường mô phỏng. Không có giao dịch chuyển tiền ngân hàng thật.', link: `/bookings/${ctx.booking.id}`
+        });
     });
     return detail(reference, { operator: true });
 }

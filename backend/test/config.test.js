@@ -75,3 +75,11 @@ test('cấu hình giữ chỗ và thanh toán sai bị chặn trước khởi đ
   process.env.PAYMENT_WEBHOOK_SECRET = 'short';
   assert.throws(validateEnvironment, /PAYMENT_WEBHOOK_SECRET/);
 });
+
+test('email SMTP cần cấu hình rõ và SITE_URL không nhận đường dẫn tùy ý', t => {
+  environment(t, { EMAIL_MODE: 'smtp', SMTP_HOST: '', MAIL_FROM: '', SITE_URL: 'https://tour.example' });
+  assert.throws(validateEnvironment, /SMTP_HOST/);
+  process.env.SMTP_HOST = 'smtp.example.invalid'; assert.throws(validateEnvironment, /MAIL_FROM/);
+  process.env.MAIL_FROM = 'Travel <no-reply@example.invalid>'; assert.doesNotThrow(validateEnvironment);
+  process.env.SITE_URL = 'https://tour.example/path'; assert.throws(validateEnvironment, /SITE_URL/);
+});

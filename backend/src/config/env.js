@@ -27,7 +27,7 @@ function validateEnvironment() {
   }
   const internalPath = getInternalAuthPath();
   if (!/^\/api\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(internalPath) ||
-      /^\/api\/(auth|manage|tours|categories|company|bookings|payments|health)(\/|$)/.test(internalPath)) {
+      /^\/api\/(auth|manage|tours|categories|company|bookings|payments|health|articles|search|wishlist|reviews|notifications|site-config)(\/|$)/.test(internalPath)) {
     throw new Error('INTERNAL_AUTH_PATH cần là đường dẫn /api/... riêng, không trùng namespace hiện có.');
   }
   buildInternalAllowList();
@@ -54,6 +54,21 @@ function validateEnvironment() {
   }
   if (process.env.DB_TIMEZONE && process.env.DB_TIMEZONE !== '+07:00') {
     throw new Error('DB_TIMEZONE phải là +07:00 để thống nhất lịch khởi hành theo giờ Việt Nam.');
+  }
+  if (process.env.EMAIL_MODE && !['file', 'smtp', 'disabled'].includes(process.env.EMAIL_MODE)) throw new Error('EMAIL_MODE chỉ nhận file, smtp hoặc disabled.');
+  if (process.env.EMAIL_MODE === 'smtp' && !process.env.SMTP_HOST?.trim()) throw new Error('Cần SMTP_HOST khi bật gửi SMTP.');
+  if (process.env.EMAIL_MODE === 'smtp' && !process.env.MAIL_FROM?.includes('@')) throw new Error('Cần MAIL_FROM hợp lệ khi bật gửi SMTP.');
+  if (Boolean(process.env.SMTP_USER) !== Boolean(process.env.SMTP_PASSWORD)) throw new Error('SMTP_USER và SMTP_PASSWORD cần được cấu hình cùng nhau.');
+  if (process.env.SMTP_SECURE && !['true', 'false'].includes(process.env.SMTP_SECURE)) throw new Error('SMTP_SECURE cần là true hoặc false.');
+  if (process.env.MAIL_FROM && /[\r\n]/.test(process.env.MAIL_FROM)) throw new Error('MAIL_FROM không hợp lệ.');
+  const smtpPort = Number(process.env.SMTP_PORT || 587);
+  if (!Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) throw new Error('SMTP_PORT không hợp lệ.');
+  const interval = Number(process.env.MAIL_INTERVAL_MS || 15000);
+  if (!Number.isInteger(interval) || interval < 1000 || interval > 3600000) throw new Error('MAIL_INTERVAL_MS cần từ 1000 đến 3600000.');
+  if (process.env.SERVE_FRONTEND && !['true','false'].includes(process.env.SERVE_FRONTEND)) throw new Error('SERVE_FRONTEND cần là true hoặc false.');
+  if (process.env.SITE_URL) {
+    const site = new URL(process.env.SITE_URL);
+    if (!['http:', 'https:'].includes(site.protocol) || site.origin !== process.env.SITE_URL.replace(/\/$/, '')) throw new Error('SITE_URL cần là origin HTTP/HTTPS, không chứa đường dẫn.');
   }
   for (const [name, fallback] of [['PORT', 5000], ['DB_PORT', 3306]]) {
     const value = Number(process.env[name] || fallback);

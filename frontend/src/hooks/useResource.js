@@ -10,7 +10,7 @@ export function useResource(path) {
     const controller = new AbortController();
     setState(previous => ({ ...previous, loading: true, error: '' }));
     api.get(path, { signal: controller.signal })
-      .then(result => { if (!controller.signal.aborted) setState({ data: result.data, meta: result.meta, loading: false, error: '' }); })
+      .then(result => { if (!controller.signal.aborted) setState({ data: result.data, meta: result.meta, summary: result.summary, unread: result.unread, loading: false, error: '' }); })
       .catch(error => { if (!controller.signal.aborted) setState({ data: null, meta: null, loading: false, error: error.message || 'Không thể kết nối máy chủ.' }); });
     return () => controller.abort();
   }, [path, version]);

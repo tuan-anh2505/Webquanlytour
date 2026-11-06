@@ -219,4 +219,4 @@ function validateMergedSchedule(value) {
     if (Number(value.max_capacity) < Number(value.booked_seats || 0)) invalid('Số chỗ tối đa không được nhỏ hơn số chỗ đã đặt.');
 }
 
-module.exports = { id, listQuery, category, tour, image, itinerary, schedule, validateMergedTour, validateMergedSchedule };
+module.exports = { id, listQuery, category, tour, image, itinerary, schedule, validateMergedTour, validateMergedSchedule, makeSlug, slug, imageUrl };

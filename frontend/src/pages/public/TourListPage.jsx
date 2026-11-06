@@ -3,10 +3,12 @@ import { useResource } from '../../hooks/useResource';
 import { EmptyState, Pagination, RequestState } from '../../components/Feedback';
 import { FormField } from '../../components/FormField';
 import { money } from '../../services/format';
+import { usePageMeta } from '../../hooks/usePageMeta';
 
 /** Trang khám phá công khai; mọi thay đổi bộ lọc được lưu trong URL. */
 export function TourListPage() {
   const [params, setParams] = useSearchParams();
+  usePageMeta({ title: 'Khám phá hành trình | Hành Trình', description: 'Tìm tour, xem lịch khởi hành và số chỗ. Tự do khám phá trước khi đăng nhập đặt tour.', path: '/', index: !params.toString() });
   const categories = useResource('/categories');
   const query = new URLSearchParams(params);
   query.set('limit', '9');

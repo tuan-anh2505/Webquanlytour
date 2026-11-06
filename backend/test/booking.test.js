@@ -19,6 +19,9 @@ function request() {
 
 /** Adapter có mutex và snapshot rollback để thử hai request đồng thời với cùng số chỗ. */
 function store(t, { capacity = 2, booked = 0, price = '100.00', bookings = [], payments = [], failPassenger = false } = {}) {
+  // Email/outbox được kiểm tra riêng trong notification.test; suite này tập trung transaction giá/chỗ.
+  t.mock.method(require('../src/models/NotificationModel'), 'bookingEvent', async () => {});
+  t.mock.method(require('../src/models/NotificationModel'), 'enqueue', async () => {});
   const state = {
     tour: { id: '3', status: 'active', base_price: price, child_price: '50.00', infant_price: '0.00' },
     schedule: { id: '10', tour_id: '3', status: 'open', max_capacity: capacity, booked_seats: booked, departure_date: '2030-02-01 08:00:00' },

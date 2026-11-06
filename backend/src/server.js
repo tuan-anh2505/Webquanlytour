@@ -1,6 +1,7 @@
 const { validateEnvironment } = require('./config/env');
 const pool = require('./config/db');
 const { createBookingExpiryJob } = require('./jobs/bookingExpiryJob');
+const { createMailJob } = require('./jobs/mailJob');
 
 /** Chỉ mở HTTP sau khi cấu hình và MySQL hợp lệ; không seed hay migrate tự động. */
 async function startServer() {
@@ -9,8 +10,10 @@ async function startServer() {
   const app = require('./app');
   const port = Number(process.env.PORT || 5000);
   const expiryJob = createBookingExpiryJob();
+  const mailJob = createMailJob();
   const server = app.listen(port, () => {
     if (process.env.BOOKING_EXPIRY_ENABLED !== 'false') expiryJob.start();
+    mailJob.start();
     console.log(`Backend đang chạy tại http://localhost:${port}`);
   });
 
@@ -19,10 +22,11 @@ async function startServer() {
   async function shutdown() {
     if (shuttingDown) return;
     shuttingDown = true;
-    const timer = setTimeout(() => process.exit(1), 10000);
+    const timer = setTimeout(() => process.exit(1), 45000);
     timer.unref();
     server.close(async () => {
       await expiryJob.stop();
+      await mailJob.stop();
       await pool.end();
       clearTimeout(timer);
       process.exit(0);
@@ -32,7 +36,7 @@ async function startServer() {
   process.once('SIGTERM', shutdown);
   server.once('error', (error) => {
     console.error(`Không thể mở HTTP server (${error.code || error.name}).`);
-    expiryJob.stop().then(() => pool.end()).finally(() => { process.exitCode = 1; });
+    Promise.all([expiryJob.stop(), mailJob.stop()]).then(() => pool.end()).finally(() => { process.exitCode = 1; });
   });
   return server;
 }

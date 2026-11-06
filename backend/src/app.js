@@ -14,6 +14,7 @@ const userRoutes = require('./routes/userRoutes');
 const { publicRouter, manageRouter } = require('./routes/tourRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const siteRoutes = require('./routes/siteRoutes');
 
 // Tách ứng dụng khỏi listen để kiểm thử HTTP mà không khởi động server của người dùng.
 const app = express();
@@ -30,7 +31,7 @@ app.use(cors({
     error.status = 403;
     callback(error);
   },
-  methods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Payment-Signature']
 }));
 // Chữ ký webhook bao phủ byte nhận được, nên phải đọc raw trước JSON parser toàn cục.
@@ -38,7 +39,7 @@ app.use('/api/payments/webhook', express.raw({ type: 'application/json', limit: 
 app.use(express.json({ limit: '256kb' }));
 
 /** Kiểm tra tiến trình nhận yêu cầu; dùng /api/health để kiểm tra thêm MySQL. */
-app.get('/', (req, res) => res.json({ message: 'Chào mừng đến với API Quản lý Tour!' }));
+app.get('/', (req, res, next) => process.env.SERVE_FRONTEND === 'true' ? next() : res.json({ message: 'Chào mừng đến với API Quản lý Tour!' }));
 
 /** Readiness: chỉ truy vấn SELECT, trả 503 khi database không đáp ứng. */
 app.get('/api/health', async (req, res) => {
@@ -73,8 +74,12 @@ app.use('/api/bookings', bookingRoutes.customerRouter);
 app.use('/api/payments', paymentRoutes.customerRouter);
 app.use('/api/manage/bookings', bookingRoutes.manageRouter);
 app.use('/api/manage/payments', paymentRoutes.manageRouter);
+app.use('/api', siteRoutes.publicRouter);
+app.use('/api', siteRoutes.customerRouter);
+app.use('/api/manage', siteRoutes.manageRouter);
 app.use('/api', publicRouter);
 app.use('/api/manage', manageRouter);
+require('./services/seoService').attach(app);
 app.use(notFound);
 app.use(errorHandler);
 
